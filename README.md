@@ -83,9 +83,11 @@ python3 main.py
 ## 🎨 6. 시각화 설명
 현재는 **전신 포즈**가 표시되지만, 필요 시 src/draw.py에서 팔 부분만 시각화하도록 수정 가능:
 
-# draw.py 내 draw_pose() 대신
+draw.py 내 draw_pose() 대신
+```
 from draw import draw_arms_only
 draw_arms_only(frame, res.pose_landmarks)
+```
 
 ---
 
