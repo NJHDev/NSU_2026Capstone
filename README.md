@@ -73,7 +73,7 @@ python3 main.py
 
 ---
 
-## 📂 5. 로그 파일 (CSV)
+## 📂 5. 로그 파일 (CSV) (사용x)
 - 저장 위치: logs/angles_YYYYMMDD_HHMMSS.csv
 - 열 구성:
   time, L_el, L_abd, L_flex, R_el, R_abd, R_flex, L_vis, R_vis
@@ -81,13 +81,7 @@ python3 main.py
 ---
 
 ## 🎨 6. 시각화 설명
-현재는 **전신 포즈**가 표시되지만, 필요 시 src/draw.py에서 팔 부분만 시각화하도록 수정 가능:
-
-draw.py 내 draw_pose() 대신
-```
-from draw import draw_arms_only
-draw_arms_only(frame, res.pose_landmarks)
-```
+현재: 오른팔 왼팔의 어깨, 팔꿈치, 손목만 표시
 
 ---
 
@@ -112,4 +106,4 @@ draw_arms_only(frame, res.pose_landmarks)
 ## 👨‍💻 제작자
 Author: *njhdev*  
 Tech Stack: Python · MediaPipe · OpenCV  
-Version: 0.0.1
+Version: 0.1.0
