@@ -3,7 +3,7 @@
 ---
 
 ## 📦 프로젝트 구조
-NSU_2026CAPSTONE/
+'''NSU_2026CAPSTONE/
 ├─ main.py                # 실행 파일
 ├─ src/
 │  ├─ camera_utils.py     # 카메라 검색 및 선택
@@ -12,6 +12,7 @@ NSU_2026CAPSTONE/
 ├─ logs/                  # CSV 로그 자동 저장 폴더
 ├─ requirements.txt       # 필요한 라이브러리 목록
 └─ README.txt             # (이 파일)
+'''
 
 ---
 
@@ -28,6 +29,7 @@ pip3 install -r requirements.txt
 ## 🚀 2. 실행 방법
 python3 main.py
 
+'''
 실행하면 터미널에 아래처럼 출력됩니다:
 [INFO] Detected OS: ~~~
 === 연결된 카메라 목록 ===
@@ -38,6 +40,7 @@ python3 main.py
 .
 ========================
 사용할 카메라 번호를 입력하세요 :
+'''
 
 **→ 번호 입력 후 엔터**
 
