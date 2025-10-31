@@ -30,8 +30,8 @@ pip3 install -r requirements.txt
 ## 🚀 2. 실행 방법
 python3 main.py
 
-```
 실행하면 터미널에 아래처럼 출력됩니다:
+```s
 [INFO] Detected OS: ~~~
 === 연결된 카메라 목록 ===
 0: ~~~
