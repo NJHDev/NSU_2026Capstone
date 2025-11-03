@@ -11,8 +11,9 @@ NSU_2026CAPSTONE/
 │  ├─ angles.py           # 각도 계산, EMA 필터
 │  └─ draw.py             # 포즈/팔 시각화
 ├─ logs/                  # CSV 로그 자동 저장 폴더
+├─ arm_uno.ino            # 로봇암 아두이노 파일
 ├─ requirements.txt       # 필요한 라이브러리 목록
-└─ README.txt             # (이 파일)
+└─ README.md              # (이 파일)
 ```
 
 ---
