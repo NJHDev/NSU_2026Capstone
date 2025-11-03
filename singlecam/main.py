@@ -2,13 +2,18 @@ import os, sys, time, csv, platform
 from datetime import datetime
 import cv2
 import mediapipe as mp
+import serial
+import time
 
 from src.camera_utils import select_camera_index, open_camera
 from src.angles import compute_angles, EMA
 from src.draw import draw_pose
 
-mp_pose = mp.solutions.pose
+# Arduino serial ("COM0" or "/dev/ttyUSB0")
+arduino = serial.Serial('/dev/cu.usbserial-110', 9600)
+time.sleep(2)  #시리얼 연결 대기
 
+mp_pose = mp.solutions.pose
 
 def main():
     cam_index = select_camera_index()
@@ -84,6 +89,9 @@ def main():
                         continue
                     rom[k][0] = min(rom[k][0], v)
                     rom[k][1] = max(rom[k][1], v)
+                
+                # --- 아두이노로 각도 전송 ---
+                arduino.write(f"{R_el}\n".encode())
 
                 # --- 화면 텍스트 오버레이 ---
                 def put(y, text):
