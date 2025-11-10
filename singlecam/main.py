@@ -4,9 +4,10 @@ import cv2
 import mediapipe as mp
 import serial
 import time
+import numpy as np
 
 from src.camera_utils import select_camera_index, open_camera
-from src.angles import compute_angles, EMA
+from src.angles import compute_angles, EMA, compute_torso_angle # compute_torso_angle 추가
 from src.draw import draw_pose
 
 # Arduino serial ("COM0" or "/dev/ttyUSB0")
@@ -33,13 +34,14 @@ def main():
     csv_writer = None
     csv_file = None
 
-    # ✅ EMA(지수이동평균) 스무딩 버퍼
+    # ✅ EMA(지수이동평균) 스무딩 버퍼 (Wr 제거, T_angle 추가)
     ema = {
-        "L_el": EMA(0.25), "L_sh": EMA(0.25), "L_wr": EMA(0.25),
-        "R_el": EMA(0.25), "R_sh": EMA(0.25), "R_wr": EMA(0.25),
+        "L_el": EMA(0.25), "L_sh": EMA(0.25),
+        "R_el": EMA(0.25), "R_sh": EMA(0.25),
+        "T_angle": EMA(0.25),
     }
 
-    # ✅ ROM(최소/최대) 기록
+    # ✅ ROM(최소/최대) 기록 (Wr 제거, T_angle 추가)
     rom = {k: [999.0, -999.0] for k in ema.keys()}
 
     fps_t = time.time()
@@ -59,31 +61,36 @@ def main():
             rgb.flags.writeable = True
 
             if res.pose_landmarks:
-                # --- 각도 계산: (elbow, shoulder, wrist, visibility) ---
-                L_el, L_sh, L_wr, L_vis = compute_angles(res.pose_landmarks, res.pose_world_landmarks, "left")
-                R_el, R_sh, R_wr, R_vis = compute_angles(res.pose_landmarks, res.pose_world_landmarks, "right")
+                # --- 각도 계산: (elbow, shoulder, visibility) - Wr 제거 ---
+                L_el_raw, L_sh_raw, L_vis = compute_angles(res.pose_landmarks, res.pose_world_landmarks, "left")
+                R_el_raw, R_sh_raw, R_vis = compute_angles(res.pose_landmarks, res.pose_world_landmarks, "right")
+
+                # --- 상체 회전 각도 계산 ---
+                T_angle_raw, T_vis = compute_torso_angle(res.pose_landmarks, res.pose_world_landmarks)
 
                 # --- EMA 스무딩 ---
-                L_el = ema["L_el"].update(L_el)
-                L_sh = ema["L_sh"].update(L_sh)
-                L_wr = ema["L_wr"].update(L_wr)
-                R_el = ema["R_el"].update(R_el)
-                R_sh = ema["R_sh"].update(R_sh)
-                R_wr = ema["R_wr"].update(R_wr)
+                L_el = ema["L_el"].update(L_el_raw)
+                L_sh = ema["L_sh"].update(L_sh_raw)
+                # L_wr 제거
+                R_el = ema["R_el"].update(R_el_raw)
+                R_sh = ema["R_sh"].update(R_sh_raw)
+                # R_wr 제거
+                T_angle = ema["T_angle"].update(T_angle_raw) # T_angle 스무딩
 
-                # --- 팔 라인 + 각도 라벨(El/Sh/Wr) 그리기 ---
-                if None not in (L_el, L_sh, L_wr, R_el, R_sh, R_wr):
+                # --- 팔 라인 + 각도 라벨(El/Sh) 그리기 ---
+                if None not in (L_el, L_sh, R_el, R_sh):
                     draw_pose(
                         frame,
                         res.pose_landmarks,
-                        (L_el, L_sh, L_wr, L_vis),
-                        (R_el, R_sh, R_wr, R_vis),
+                        (L_el, L_sh, L_vis), # Wr 제거
+                        (R_el, R_sh, R_vis), # Wr 제거
                     )
 
                 # --- ROM 갱신 ---
                 for k, v in {
-                    "L_el": L_el, "L_sh": L_sh, "L_wr": L_wr,
-                    "R_el": R_el, "R_sh": R_sh, "R_wr": R_wr,
+                    "L_el": L_el, "L_sh": L_sh,
+                    "R_el": R_el, "R_sh": R_sh,
+                    "T_angle": T_angle, # T_angle 추가
                 }.items():
                     if v is None:
                         continue
@@ -91,18 +98,26 @@ def main():
                     rom[k][1] = max(rom[k][1], v)
                 
                 # --- 아두이노로 각도 전송 ---
-                arduino.write(f"{R_el}\n".encode())
+                # (R_el 각도를 시리얼로 보냄. 원하는 각도로 변경 가능)
+                if R_el is not None:
+                    arduino.write(f"{R_el:0.0f}\n".encode())
 
                 # --- 화면 텍스트 오버레이 ---
                 def put(y, text):
                     cv2.putText(frame, text, (16, y), cv2.FONT_HERSHEY_SIMPLEX,
-                                0.7, (255, 255, 255), 2, cv2.LINE_AA)
+                                0.7, (0, 0, 255), 2, cv2.LINE_AA)
 
                 put(28, f"OS:{platform.system()}  Cam:{cam_index}  FPS:{fps:0.1f}   Mirror:[{'ON' if mirror else 'OFF'}]   Log:[{'ON' if log_on else 'OFF'}]")
-                put(56, f"L: El:{'-' if L_el is None else f'{L_el:5.1f}'}  Sh:{'-' if L_sh is None else f'{L_sh:5.1f}'}  Wr:{'-' if L_wr is None else f'{L_wr:5.1f}'}")
-                put(84, f"R: El:{'-' if R_el is None else f'{R_el:5.1f}'}  Sh:{'-' if R_sh is None else f'{R_sh:5.1f}'}  Wr:{'-' if R_wr is None else f'{R_wr:5.1f}'}")
-                put(120, f"L-ROM El:{rom['L_el'][0]:.0f}/{rom['L_el'][1]:.0f}  Sh:{rom['L_sh'][0]:.0f}/{rom['L_sh'][1]:.0f}  Wr:{rom['L_wr'][0]:.0f}/{rom['L_wr'][1]:.0f}")
-                put(148, f"R-ROM El:{rom['R_el'][0]:.0f}/{rom['R_el'][1]:.0f}  Sh:{rom['R_sh'][0]:.0f}/{rom['R_sh'][1]:.0f}  Wr:{rom['R_wr'][0]:.0f}/{rom['R_wr'][1]:.0f}")
+                # Wr 제거
+                put(56, f"L: El:{'-' if L_el is None else f'{L_el:5.1f}'}  Sh:{'-' if L_sh is None else f'{L_sh:5.1f}'}")
+                put(84, f"R: El:{'-' if R_el is None else f'{R_el:5.1f}'}  Sh:{'-' if R_sh is None else f'{R_sh:5.1f}'}")
+                
+                # T_angle 추가 및 ROM 통합
+                put(112, f"Torso Angle: {'-' if T_angle is None else f'{T_angle:5.1f}'} deg  ROM:{rom['T_angle'][0]:.0f}/{rom['T_angle'][1]:.0f}")
+
+                # Wr 제거 및 Y좌표 조정
+                put(140, f"L-ROM El:{rom['L_el'][0]:.0f}/{rom['L_el'][1]:.0f}  Sh:{rom['L_sh'][0]:.0f}/{rom['L_sh'][1]:.0f}")
+                put(168, f"R-ROM El:{rom['R_el'][0]:.0f}/{rom['R_el'][1]:.0f}  Sh:{rom['R_sh'][0]:.0f}/{rom['R_sh'][1]:.0f}")
 
                 # --- CSV 로깅 ---
                 if log_on:
@@ -111,10 +126,12 @@ def main():
                         path = f"logs/angles_{ts}.csv"
                         csv_file = open(path, "w", newline="", encoding="utf-8")
                         csv_writer = csv.writer(csv_file)
+                        # T_angle 추가, Wr 제거
                         csv_writer.writerow(
-                            ["time", "L_el", "L_sh", "L_wr", "R_el", "R_sh", "R_wr", "L_vis", "R_vis"]
+                            ["time", "L_el", "L_sh", "R_el", "R_sh", "T_angle", "L_vis", "R_vis", "T_vis"]
                         )
-                    csv_writer.writerow([time.time(), L_el, L_sh, L_wr, R_el, R_sh, R_wr, L_vis, R_vis])
+                    # T_angle 추가, Wr 제거
+                    csv_writer.writerow([time.time(), L_el, L_sh, R_el, R_sh, T_angle, L_vis, R_vis, T_vis])
             else:
                 # 사람 미인식 안내
                 cv2.putText(frame, "No person detected", (40, 60),
@@ -128,7 +145,7 @@ def main():
             fps_t = now
 
             # --- 키 입력 ---
-            cv2.imshow("Pose Angles (Arms: El / Sh / Wr)", frame)
+            cv2.imshow("Pose Angles (Arms: El / Sh / Torso)", frame)
             k = cv2.waitKey(1) & 0xFF
             if k == ord("q"):
                 break
@@ -141,6 +158,7 @@ def main():
                     csv_file = None
                     csv_writer = None
             elif k == ord("r"):
+                # T_angle 포함 ROM 초기화
                 rom = {k: [999.0, -999.0] for k in rom.keys()}
 
     if csv_file:

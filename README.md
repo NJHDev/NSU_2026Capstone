@@ -21,7 +21,7 @@ NSU_2026CAPSTONE/
 ## ⚙️ 1. 설치 방법
 
 ### Python 버전
-- **Python 3.9.x 권장** (MediaPipe는 3.13 이상 미지원)
+- **Python 3.10.19로 개발** (MediaPipe는 3.13 이상 미지원)
 
 ### pip 설치
 pip3 install -r requirements.txt
