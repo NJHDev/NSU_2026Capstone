@@ -25,7 +25,7 @@ NSU_2026CAPSTONE/
 
 ### Environment
 ```
-conda env create -f environment.yml
+conda env create -n nsu_2026capstone python=3.10.19
 conda activate nsu_2026capstone
 ```
 env Remove
@@ -113,4 +113,4 @@ python3 main.py
 ## 👨‍💻 제작자
 Author: *njhdev*  
 Tech Stack: Python · MediaPipe · OpenCV  
-Version: 0.1.0
+Version: ?????
