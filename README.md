@@ -23,9 +23,15 @@ NSU_2026CAPSTONE/
 ### Python 버전
 - **Python 3.10.19로 개발** (MediaPipe는 3.13 이상 미지원)
 
-### pip 설치
-pip3 install -r requirements.txt
-
+### Environment
+```
+conda env create -f environment.yml
+conda activate nsu_2026capstone
+```
+env Remove
+```
+conda remove --name [env name] --all
+```
 ---
 
 ## 🚀 2. 실행 방법
