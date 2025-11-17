@@ -88,7 +88,7 @@ def connect_arduino():
     arduino_port = select_arduino_port()
     
     if arduino_port is None:
-        print("아두이노 연결이 취소되거나 포트를 찾지 못했습니다. None을 반환합니다.")
+        print("아두이노 연결이 취소되거나 포트를 찾지 못했습니다.")
         return None
 
     try:
@@ -99,5 +99,5 @@ def connect_arduino():
         return arduino
     except serial.SerialException as e:
         print(f"오류: 아두이노 포트 연결 실패. ({e})")
-        print("시리얼 포트가 이미 사용 중이거나 연결 권한이 없을 수 있습니다. None을 반환합니다.")
+        print("시리얼 포트가 이미 사용 중이거나 연결 권한이 없습니다.")
         return None
