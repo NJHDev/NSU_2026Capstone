@@ -2,17 +2,16 @@ import os, sys, time, csv, platform
 from datetime import datetime
 import cv2
 import mediapipe as mp
-import serial
 import time
 import numpy as np
 
 from src.camera_utils import select_camera_index, open_camera
 from src.angles import compute_angles, EMA, compute_torso_angle
 from src.draw import draw_pose
+from src.arduino import connect_arduino
 
-# Arduino serial ("COM0" or "/dev/ttyUSB0")
-arduino = serial.Serial('COM5', 9600)
-time.sleep(2)
+# connect_arduino를 호출하여 serial 객체 생성
+arduino = connect_arduino()
 
 mp_pose = mp.solutions.pose
 
@@ -96,7 +95,7 @@ def main():
                     rom[k][1] = max(rom[k][1], v)
                 
                 # --- 아두이노로 각도 전송 (R_el, R_sh, T_angle) ---
-                if None not in (R_el, R_sh, T_angle):
+                if arduino is not None and None not in (R_el, R_sh, T_angle):
                     send_data = f"{R_el:0.0f},{R_sh:0.0f},{T_angle:0.0f}\n"
                     arduino.write(send_data.encode())
 
@@ -158,7 +157,9 @@ def main():
         csv_file.close()
     cap.release()
     cv2.destroyAllWindows()
-    arduino.close()
+    
+    if arduino is not None:
+        arduino.close()
     
 
 
